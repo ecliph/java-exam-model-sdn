@@ -50,19 +50,19 @@ public class Flotte<T extends IDrone> {
     public void ajouterDrone(T drone) 
             throws DroneDejaPresentException, NomDejaUtiliseException, DroneInvalideException {
 
-        // 1. Vérifier si l'OBJET existe déjà (recherche par valeur dans la Map)
+        // 1. VERIF PRIORITAIRE : L'objet est-il nul ou invalide ? (Evite le NullPointerException)
+        if (drone == null || !drone.isEfficient()) {
+            throw new DroneInvalideException(drone);
+        }
+
+        // 2. Vérifier si l'OBJET physique existe déjà (recherche par valeur)
         if (dronesParNom.containsValue(drone)) {
             throw new DroneDejaPresentException("Cet objet drone est déjà présent dans la flotte.");
         }
 
-        // 2. Vérifier si le NOM est déjà pris (recherche par clé dans la Map)
+        // 3. Vérifier si le NOM est déjà pris (recherche par clé)
         if (dronesParNom.containsKey(drone.getNom())) {
             throw new NomDejaUtiliseException("Le nom '" + drone.getNom() + "' est déjà utilisé.");
-        }
-
-        // 3. Vérifier l'efficience (Règle métier)
-        if (drone == null || !drone.isEfficient()) {
-            throw new DroneInvalideException(drone);
         }
 
         // 4. AJOUT dans toutes les structures
