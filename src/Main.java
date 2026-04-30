@@ -2,83 +2,67 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * RÔLE DU FICHIER : Exécuter le code et montrer les résultats.
- * MODÈLE D'ANNALE : Souvent la dernière question "Écrire un main qui...".
- *
- * NOTION : Try/Catch multiple, Instanciation, Appels de méthodes.
+ * --- LEÇON 6 : LE TEST FINAL (MAIN) ---
+ * 
+ * RÔLE DU FICHIER : 
+ * C'est ici qu'on "lance" la machine. 
+ * En examen, on vous demande souvent d'écrire une classe de test (Main) 
+ * pour prouver que votre code fonctionne.
  */
 public class Main {
 
     public static void main(String[] args) {
 
-        System.out.println("--- DÉBUT DE LA DÉMONSTRATION DRONES ---");
+        System.out.println("=== DÉMARRAGE DU PROGRAMME DE RÉVISION ===");
 
-        // 1. Création des bases
+        // 1. CRÉATION DES OBJETS DE BASE
+        // On crée d'abord les dépendances (les objets dont on a besoin pour les autres).
         Base baseParis = new Base("48.8, 2.3", 500.0);
-        baseLyon = new Base("45.7, 4.8", 300.0);
+        Base baseLyon = new Base("45.7, 4.8", 300.0);
 
-        // 2. Création de la flotte (Générique)
-        Flotte<IDrone> maFlotte = new Flotte<>("Flotte Alpha");
+        // 2. CRÉATION DE LA GESTION (Flotte)
+        // On précise que notre flotte va gérer n'importe quel type de IDrone.
+        Flotte<IDrone> maFlotte = new Flotte<>("Flotte de Sécurité");
 
-        // 3. Création des drones
-        DroneTransport t1 = new DroneTransport("Transporter-1", 1000.0, baseParis, 2); // Efficient (500 per colis)
-        DroneTransport t2 = new DroneTransport("Transporter-2", 100.0, baseParis, 10); // Non-Efficient
-        DroneMedical m1 = new DroneMedical("Medi-Medic", 500.0, baseLyon, true);      // Efficient
+        // 3. CRÉATION DES DRONES (Polymorphisme)
+        // On peut stocker un DroneTransport dans une variable de type IDrone !
+        IDrone t1 = new DroneTransport("Alpha-1", 1200.0, baseParis, 3);
+        IDrone t2 = new DroneTransport("Beta-Error", 10.0, baseParis, 20); // Batterie trop faible -> Inefficace
+        IDrone m1 = new DroneMedical("Medi-Safe", 800.0, baseLyon, true);
 
-        // 4. Test des ajouts avec gestion des exceptions
-        System.out.println("\n[Tests d'ajouts]");
+        // 4. TEST DES AJOUTS AVEC TRY / CATCH
+        // C'est ici qu'on gère les erreurs. Si une erreur arrive, le programme 
+        // ne "plante" pas, il va directement dans le 'catch'.
+        System.out.println("\n[ÉTAPE 1] Ajout des drones...");
         try {
             maFlotte.ajouterDrone(t1);
-            System.out.println("OK : Ajout de t1");
-
             maFlotte.ajouterDrone(m1);
-            System.out.println("OK : Ajout de m1");
-
-            // Test Doublon d'objet
-            // maFlotte.ajouterDrone(t1); // Déclencherait DroneDejaPresentException
-
-            // Test Doublon de NOM
-            DroneMedical m2 = new DroneMedical("Medi-Medic", 800.0, baseParis, true);
-            // maFlotte.ajouterDrone(m2); // Déclencherait NomDejaUtiliseException
-
-            // Test Drone Invalide (t2 n'est pas efficient)
-            System.out.println("Tentative ajout t2 (non efficient)...");
+            
+            // Tentative d'ajout d'un drone inefficace (doit lever une exception)
+            System.out.println("Tentative d'ajout d'un drone inefficace...");
             maFlotte.ajouterDrone(t2);
 
-        } catch (NomDejaUtiliseException | DroneDejaPresentException | DroneInvalideException e) {
+        } catch (DroneInvalideException e) {
+            System.err.println("ERREUR PRÉVUE : Le drone " + e.getDroneRejete().getNom() + " a été rejeté.");
+        } catch (NomDejaUtiliseException | DroneDejaPresentException e) {
             System.err.println("ERREUR : " + e.getMessage());
         }
 
-        // 5. Tests des Streams et des boucles For
-        System.out.println("\n[Moyenne des batteries]");
-        System.out.println("Stream : " + maFlotte.moyenneBatterieStream());
-        System.out.println("For    : " + maFlotte.moyenneBatterieFor());
+        // 5. TEST DES CALCULS (STREAMS / BOUCLES)
+        System.out.println("\n[ÉTAPE 2] Statistiques :");
+        System.out.println("Moyenne batterie (Stream) : " + maFlotte.moyenneBatterie() + " mAh");
+        
+        List<IDrone> medicaux = maFlotte.extraireParType(TypeDrone.MEDICAL);
+        System.out.println("Nombre de drones médicaux : " + medicaux.size());
 
-        System.out.println("\n[Drones Médicaux]");
-        System.out.println("Stream : " + maFlotte.dronesParTypeStream(TypeDrone.MEDICAL));
-        System.out.println("For    : " + maFlotte.dronesParTypeFor(TypeDrone.MEDICAL));
-
-        // 6. Test du tri
-        System.out.println("\n[Drones triés par nom (compareTo)]");
-        List<IDrone> tries = maFlotte.dronesTriesAvecArrayList();
+        // 6. TEST DU TRI
+        System.out.println("\n[ÉTAPE 3] Tri alphabétique des noms :");
+        List<IDrone> tries = maFlotte.obtenirToutTrie();
         for (IDrone d : tries) {
-            System.out.println("- " + d.getNom());
+            System.out.println(" - " + d.getNom());
         }
 
-        // 7. Test de ? extends
-        System.out.println("\n[Test ? extends]");
-        List<DroneTransport> catalogueNouveaux = new ArrayList<>();
-        catalogueNouveaux.add(new DroneTransport("New-Trans-1", 1500.0, baseParis, 3));
-        maFlotte.absorberDepuis(catalogueNouveaux);
-        System.out.println("Nouvelle taille flotte : " + maFlotte.chercherParNom("New-Trans-1") != null);
-
-        // 8. Test de ? super
-        System.out.println("\n[Test ? super]");
-        List<Object> archiveGlobale = new ArrayList<>();
-        maFlotte.deplacerVers(archiveGlobale);
-        System.out.println("Taille archive : " + archiveGlobale.size());
-        System.out.println("Ma flotte est maintenant : " + maFlotte);
-
-        System.out.println("\n--- FIN DE LA DÉMONSTRATION ---");
+        System.out.println("\n=== FIN DE LA DÉMONSTRATION ===");
+        System.out.println("CONSEIL : Étudiez bien les blocs try/catch ci-dessus, c'est crucial !");
     }
 }

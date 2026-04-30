@@ -2,203 +2,140 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * RÔLE DU FICHIER : Gérer une collection de drones.
- * MODÈLE D'ANNALE : Correspond à la classe "Hotel", "Chaine", "Bibliotheque".
- *
- * NOTION : Généricité <T extends IDrone>, HashMap, TreeMap, TreeSet,
- *          Streams vs Boucles For, Wildcards (? extends / ? super).
+ * --- LEÇON 5 : LA GESTION DES DONNÉES (COLLECTIONS & GÉNÉRICITÉ) ---
+ * 
+ * RÔLE DU FICHIER : 
+ * C'est le "cerveau" du projet. Il gère une liste de drones.
+ * C'est ici que vous trouverez les réponses aux questions complexes de l'examen.
+ * 
+ * NOTION : <T extends IDrone>
+ * Ça veut dire : "Cette classe travaille avec un type T, mais T DOIT être un drone".
  */
 public class Flotte<T extends IDrone> {
 
     private String nomFlotte;
 
-    // HASHMAP : Rapide pour chercher par CLÉ (ici le nom du drone).
+    /**
+     * LES STRUCTURES DE DONNÉES (Le choix dépend du sujet)
+     */
+    
+    // 1. HashMap : On cherche un drone par son NOM. C'est INSTANTANÉ.
+    // Syntaxe : Map<Clé, Valeur>
     private Map<String, T> dronesParNom = new HashMap<>();
 
-    // TREEMAP : Comme HashMap, mais les CLÉS sont toujours triées.
-    private TreeMap<String, T> dronesTriesParNom = new TreeMap<>();
+    // 2. TreeMap : Comme HashMap, mais les noms sont toujours TRIÉS alphabétiquement.
+    private TreeMap<String, T> dronesTries = new TreeMap<>();
 
-    // TREESET : Stocke des objets uniques et TRIÉS (utilise compareTo).
-    private TreeSet<T> dronesOrdonnes = new TreeSet<>();
-
-    // ARRAYLIST : Garde l'ordre d'arrivée.
-    private ArrayList<T> historiqueAjouts = new ArrayList<>();
+    // 3. ArrayList : Utile pour garder l'ordre dans lequel on a ajouté les drones.
+    private List<T> listeHistorique = new ArrayList<>();
 
     public Flotte(String nomFlotte) {
-        // Validation simple
-        if (nomFlotte == null || nomFlotte.isEmpty()) {
-            this.nomFlotte = "Flotte Sans Nom";
-        } else {
-            this.nomFlotte = nomFlotte;
-        }
-        // ASSERTION : Vérifie que le nom est bien celui attendu après l'opération.
-        assert this.nomFlotte.equals(nomFlotte) : "Erreur d'initialisation du nom";
+        this.nomFlotte = nomFlotte;
     }
 
     /**
-     * MÉTHODE D'AJOUT : Avec toutes les vérifications d'examen.
+     * MÉTHODE D'AJOUT (La plus importante de l'examen !)
+     * Elle contient souvent 3 ou 4 vérifications (if) avant de faire l'ajout.
      */
-    public void ajouterDrone(T drone)
+    public void ajouterDrone(T drone) 
             throws DroneDejaPresentException, NomDejaUtiliseException, DroneInvalideException {
 
-        // 1. Vérifier si le drone est null ou non efficient
+        // VERIF 1 : L'objet est-il nul ou invalide ?
         if (drone == null || !drone.isEfficient()) {
             throw new DroneInvalideException(drone);
         }
 
-        // 2. Vérifier si l'OBJET est déjà présent (recherche par valeur)
-        if (dronesParNom.containsValue(drone)) {
-            throw new DroneDejaPresentException("Ce drone est déjà dans la flotte (même objet).");
-        }
-
-        // 3. Vérifier si le NOM est déjà pris (recherche par clé)
+        // VERIF 2 : Le NOM est-il déjà pris ? (On regarde les CLÉS de la Map)
         if (dronesParNom.containsKey(drone.getNom())) {
-            throw new NomDejaUtiliseException("Un drone porte déjà le nom : " + drone.getNom());
+            throw new NomDejaUtiliseException("Le nom " + drone.getNom() + " existe déjà.");
         }
 
-        // 4. Ajouts dans les différentes structures
-        dronesParNom.put(drone.getNom(), drone);       // Dans la Map
-        dronesTriesParNom.put(drone.getNom(), drone); // Dans la Map triée
-        dronesOrdonnes.add(drone);                    // Dans le Set trié (utilise compareTo)
-        historiqueAjouts.add(drone);                  // Dans la liste simple
-
-        // 5. Assertion finale
-        assert dronesParNom.containsKey(drone.getNom()) : "Le drone aurait dû être ajouté.";
+        // AJOUT RÉEL dans nos outils
+        dronesParNom.put(drone.getNom(), drone);
+        dronesTries.put(drone.getNom(), drone);
+        listeHistorique.add(drone);
+        
+        System.out.println("Ajout réussi de : " + drone.getNom());
     }
 
     /**
-     * RECHERCHE DIRECTE (par clé)
+     * RECHERCHE (Très simple avec une Map)
      */
-    public T chercherParNom(String nom) {
-        return dronesParNom.get(nom); // Retourne l'objet ou null
-    }
-
-    /**
-     * RECHERCHE PAR BOUCLE (si on ne connaît pas la clé)
-     */
-    public T chercherParNomAvecFor(String nom) {
-        for (T d : dronesParNom.values()) {
-            if (d.getNom().equals(nom)) return d;
-        }
-        return null;
-    }
-
-    /**
-     * SUPPRESSION
-     */
-    public T supprimerParNom(String nom) {
-        T supprime = dronesParNom.remove(nom);
-        if (supprime != null) {
-            dronesTriesParNom.remove(nom);
-            dronesOrdonnes.remove(supprime);
-            historiqueAjouts.remove(supprime);
-        }
-        return supprime;
-    }
-
-    /**
-     * TRI AVEC COLLECTIONS.SORT (Modèle d'examen très courant)
-     */
-    public List<T> dronesTriesAvecArrayList() {
-        List<T> liste = new ArrayList<>(dronesParNom.values());
-        Collections.sort(liste); // Utilise le compareTo défini dans Drone
-        return liste;
+    public T trouver(String nom) {
+        return dronesParNom.get(nom); // Retourne l'objet ou null s'il n'existe pas.
     }
 
     /* -----------------------------------------------------------
-     * SECTION STREAMS VS BOUCLES FOR (Comparaisons directes)
+     * SECTION STREAMS (Le mode "Moderne")
+     * Les Streams sont comme un tapis roulant où on filtre les objets.
      * ----------------------------------------------------------- */
 
-    // A. Filtrer et Afficher
-    public void afficherDronesEfficientsStream() {
-        dronesParNom.values().stream()
-            .filter(d -> d.isEfficient())
-            .forEach(d -> System.out.println(d));
-    }
-    public void afficherDronesEfficientsFor() {
-        for (T d : dronesParNom.values()) {
-            if (d.isEfficient()) System.out.println(d);
-        }
+    /**
+     * CALCULER UNE MOYENNE (Stream)
+     */
+    public double moyenneBatterie() {
+        return dronesParNom.values().stream()           // On prend tous les drones
+            .mapToDouble(d -> d.getCapaciteBatterie())  // On ne garde que leur chiffre de batterie
+            .average()                                  // On demande la moyenne
+            .orElse(0.0);                               // Si la liste est vide, on rend 0.0
     }
 
-    // B. Moyenne des batteries
-    public double moyenneBatterieStream() {
+    /**
+     * FILTRER DANS UNE LISTE (Stream)
+     */
+    public List<T> extraireParType(TypeDrone typeCherche) {
         return dronesParNom.values().stream()
-            .mapToDouble(d -> d.getCapaciteBatterie())
-            .average()
-            .orElse(0.0);
+            .filter(d -> d.getType() == typeCherche)    // On ne garde que le bon type
+            .collect(Collectors.toList());              // On remet tout dans une Liste
     }
-    public double moyenneBatterieFor() {
+
+    /* -----------------------------------------------------------
+     * SECTION BOUCLES (Le mode "Classique")
+     * Si vous n'êtes pas à l'aise avec les Streams, utilisez ça !
+     * ----------------------------------------------------------- */
+
+    /**
+     * CALCULER UNE MOYENNE (Boucle For)
+     */
+    public double moyenneBatterieClassique() {
         if (dronesParNom.isEmpty()) return 0.0;
-        double total = 0;
+        double somme = 0;
         for (T d : dronesParNom.values()) {
-            total += d.getCapaciteBatterie();
+            somme += d.getCapaciteBatterie();
         }
-        return total / dronesParNom.size();
+        return somme / dronesParNom.size();
     }
 
-    // C. Somme par type
-    public double sommeBatterieParTypeStream(TypeDrone t) {
-        return dronesParNom.values().stream()
-            .filter(d -> d.getType() == t)
-            .mapToDouble(d -> d.getCapaciteBatterie())
-            .sum();
-    }
-    public double sommeBatterieParTypeFor(TypeDrone t) {
-        double total = 0;
-        for (T d : dronesParNom.values()) {
-            if (d.getType() == t) total += d.getCapaciteBatterie();
-        }
-        return total;
-    }
-
-    // D. Collecter dans une liste
-    public List<T> dronesParTypeStream(TypeDrone t) {
-        return dronesParNom.values().stream()
-            .filter(d -> d.getType() == t)
-            .collect(Collectors.toList());
-    }
-    public List<T> dronesParTypeFor(TypeDrone t) {
+    /**
+     * FILTRER DANS UNE LISTE (Boucle For)
+     */
+    public List<T> extraireParTypeClassique(TypeDrone typeCherche) {
         List<T> resultat = new ArrayList<>();
         for (T d : dronesParNom.values()) {
-            if (d.getType() == t) resultat.add(d);
+            if (d.getType() == typeCherche) {
+                resultat.add(d);
+            }
         }
         return resultat;
     }
 
     /* -----------------------------------------------------------
-     * SECTION WILDCARDS (? extends / ? super)
+     * SECTION TRI (Collections.sort)
      * ----------------------------------------------------------- */
 
     /**
-     * ? EXTENDS : On veut LIRE des drones depuis une source.
-     * La source peut contenir des sous-types de T (ex: une liste de DroneTransport).
+     * TRIER UNE LISTE
+     * Pour trier, on doit d'abord copier les données dans une ArrayList.
      */
-    public void absorberDepuis(Collection<? extends T> source) {
-        for (T d : source) {
-            try {
-                this.ajouterDrone(d);
-            } catch (GestionFlotteException e) {
-                System.out.println("Saut d'un drone : " + e.getMessage());
-            }
-        }
-    }
-
-    /**
-     * ? SUPER : On veut DÉPLACER nos drones vers une destination.
-     * La destination doit pouvoir accepter des T ou ses parents (ex: une flotte de IDrone).
-     */
-    public void deplacerVers(Collection<? super T> destination) {
-        destination.addAll(dronesParNom.values());
-        // On vide la flotte courante après le transfert
-        dronesParNom.clear();
-        dronesTriesParNom.clear();
-        dronesOrdonnes.clear();
-        historiqueAjouts.clear();
+    public List<T> obtenirToutTrie() {
+        List<T> copie = new ArrayList<>(dronesParNom.values());
+        // Collections.sort utilise le 'compareTo' que vous avez écrit dans Drone.java
+        Collections.sort(copie);
+        return copie;
     }
 
     @Override
     public String toString() {
-        return "Flotte " + nomFlotte + " (" + dronesParNom.size() + " drones)";
+        return "Flotte '" + nomFlotte + "' avec " + dronesParNom.size() + " drones.";
     }
 }
